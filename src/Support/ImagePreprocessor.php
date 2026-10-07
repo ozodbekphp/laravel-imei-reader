@@ -39,6 +39,10 @@ class ImagePreprocessor
             throw new ImageProcessingException("Image binary data is empty.");
         }
 
+        if (!function_exists('imagecreatefromstring')) {
+            throw new ImageProcessingException("PHP GD extension (ext-gd) is not enabled on this server.");
+        }
+
         // Suppress warning and check return
         $image = @imagecreatefromstring($binaryData);
         if (!$image instanceof GdImage) {
