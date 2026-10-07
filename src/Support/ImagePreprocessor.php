@@ -20,7 +20,7 @@ class ImagePreprocessor
     {
         $cleanBase64 = self::cleanBase64($base64);
 
-        $binaryData = base64_decode($cleanBase64, true);
+        $binaryData = \base64_decode($cleanBase64, true);
         if ($binaryData === false) {
             throw new InvalidBase64Exception("Failed to decode base64 string: invalid base64 data.");
         }
@@ -35,16 +35,16 @@ class ImagePreprocessor
      */
     public static function fromBinary(string $binaryData): GdImage
     {
-        if (strlen($binaryData) === 0) {
+        if (\strlen($binaryData) === 0) {
             throw new ImageProcessingException("Image binary data is empty.");
         }
 
-        if (!function_exists('imagecreatefromstring')) {
+        if (!\function_exists('imagecreatefromstring')) {
             throw new ImageProcessingException("PHP GD extension (ext-gd) is not enabled on this server.");
         }
 
         // Suppress warning and check return
-        $image = @imagecreatefromstring($binaryData);
+        $image = @\imagecreatefromstring($binaryData);
         if (!$image instanceof GdImage) {
             throw new ImageProcessingException("Failed to create image from binary data. Format might be unsupported or corrupt.");
         }
@@ -59,11 +59,11 @@ class ImagePreprocessor
      */
     public static function fromFile(string $filePath): GdImage
     {
-        if (!file_exists($filePath) || !is_readable($filePath)) {
+        if (!\file_exists($filePath) || !\is_readable($filePath)) {
             throw new ImageProcessingException("Image file does not exist or is not readable: {$filePath}");
         }
 
-        $binaryData = file_get_contents($filePath);
+        $binaryData = \file_get_contents($filePath);
         if ($binaryData === false) {
             throw new ImageProcessingException("Failed to read image file: {$filePath}");
         }
@@ -77,21 +77,21 @@ class ImagePreprocessor
     public static function cleanBase64(string $base64): string
     {
         // Strip data URI prefix if present (e.g. data:image/png;base64,)
-        if (str_contains($base64, 'base64,')) {
-            $parts = explode('base64,', $base64, 2);
+        if (\str_contains($base64, 'base64,')) {
+            $parts = \explode('base64,', $base64, 2);
             $base64 = $parts[1] ?? '';
         }
 
         // Remove all whitespace, newlines, carriage returns
-        $clean = preg_replace('/\s+/', '', $base64) ?? '';
+        $clean = \preg_replace('/\s+/', '', $base64) ?? '';
 
         // Handle URL-safe base64
-        $clean = strtr($clean, '-_', '+/');
+        $clean = \strtr($clean, '-_', '+/');
 
         // Pad if needed
-        $mod = strlen($clean) % 4;
+        $mod = \strlen($clean) % 4;
         if ($mod > 0) {
-            $clean .= str_repeat('=', 4 - $mod);
+            $clean .= \str_repeat('=', 4 - $mod);
         }
 
         return $clean;
@@ -102,16 +102,16 @@ class ImagePreprocessor
      */
     public static function toGrayscale(GdImage $image): GdImage
     {
-        $w = imagesx($image);
-        $h = imagesy($image);
+        $w = \imagesx($image);
+        $h = \imagesy($image);
 
-        $gray = imagecreatetruecolor($w, $h);
+        $gray = \imagecreatetruecolor($w, $h);
         if (!$gray instanceof GdImage) {
             throw new ImageProcessingException("Failed to allocate grayscale image buffer.");
         }
 
-        imagecopy($gray, $image, 0, 0, 0, 0, $w, $h);
-        imagefilter($gray, IMG_FILTER_GRAYSCALE);
+        \imagecopy($gray, $image, 0, 0, 0, 0, $w, $h);
+        \imagefilter($gray, IMG_FILTER_GRAYSCALE);
 
         return $gray;
     }
@@ -121,8 +121,8 @@ class ImagePreprocessor
      */
     public static function calculateOtsuThreshold(GdImage $image): int
     {
-        $w = imagesx($image);
-        $h = imagesy($image);
+        $w = \imagesx($image);
+        $h = \imagesy($image);
         $totalPixels = $w * $h;
 
         if ($totalPixels === 0) {
@@ -130,10 +130,10 @@ class ImagePreprocessor
         }
 
         // Compute grayscale histogram
-        $histogram = array_fill(0, 256, 0);
+        $histogram = \array_fill(0, 256, 0);
         for ($y = 0; $y < $h; $y++) {
             for ($x = 0; $x < $w; $x++) {
-                $rgb = imagecolorat($image, $x, $y);
+                $rgb = \imagecolorat($image, $x, $y);
                 $r = ($rgb >> 16) & 0xFF;
                 $g = ($rgb >> 8) & 0xFF;
                 $b = $rgb & 0xFF;
@@ -174,7 +174,7 @@ class ImagePreprocessor
             }
         }
 
-        return max(20, min(235, $threshold));
+        return \max(20, \min(235, $threshold));
     }
 
     /**
@@ -182,8 +182,8 @@ class ImagePreprocessor
      */
     public static function rotate(GdImage $image, float $angle): GdImage
     {
-        $white = imagecolorallocate($image, 255, 255, 255);
-        $rotated = imagerotate($image, $angle, (int) $white);
+        $white = \imagecolorallocate($image, 255, 255, 255);
+        $rotated = \imagerotate($image, $angle, (int) $white);
         if (!$rotated instanceof GdImage) {
             return $image;
         }
@@ -197,13 +197,13 @@ class ImagePreprocessor
      */
     public static function extractRowRuns(GdImage $image, int $y, int $threshold = 128): array
     {
-        $w = imagesx($image);
+        $w = \imagesx($image);
         $runs = [];
         $currColor = null;
         $currLen = 0;
 
         for ($x = 0; $x < $w; $x++) {
-            $rgb = imagecolorat($image, $x, $y);
+            $rgb = \imagecolorat($image, $x, $y);
             $r = ($rgb >> 16) & 0xFF;
             $g = ($rgb >> 8) & 0xFF;
             $b = $rgb & 0xFF;
