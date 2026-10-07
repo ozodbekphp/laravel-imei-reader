@@ -117,29 +117,66 @@ class ImagePreprocessor
     }
 
     /**
-     * Calculate optimal Otsu threshold for binarization.
+     * Downscale a high-resolution image to a maximum dimension while maintaining aspect ratio.
+     */
+    public static function resizeToMax(GdImage $image, int $maxDim = 1200): GdImage
+    {
+        $w = \imagesx($image);
+        $h = \imagesy($image);
+
+        if ($w <= $maxDim && $h <= $maxDim) {
+            return $image;
+        }
+
+        if ($w > $h) {
+            $newW = $maxDim;
+            $newH = (int) \round(($h / $w) * $maxDim);
+        } else {
+            $newH = $maxDim;
+            $newW = (int) \round(($w / $h) * $maxDim);
+        }
+
+        $resized = \imagecreatetruecolor($newW, $newH);
+        if (!$resized instanceof GdImage) {
+            return $image;
+        }
+
+        \imagecopyresampled($resized, $image, 0, 0, 0, 0, $newW, $newH, $w, $h);
+        return $resized;
+    }
+
+    /**
+     * Calculate optimal Otsu threshold for binarization using fast sampling.
      */
     public static function calculateOtsuThreshold(GdImage $image): int
     {
         $w = \imagesx($image);
         $h = \imagesy($image);
-        $totalPixels = $w * $h;
-
-        if ($totalPixels === 0) {
+        if ($w === 0 || $h === 0) {
             return 128;
         }
 
-        // Compute grayscale histogram
+        // Subsample grid for instant calculation (<1ms) on high-res images
+        $stepX = \max(1, (int) ($w / 100));
+        $stepY = \max(1, (int) ($h / 100));
+
         $histogram = \array_fill(0, 256, 0);
-        for ($y = 0; $y < $h; $y++) {
-            for ($x = 0; $x < $w; $x++) {
+        $sampledPixels = 0;
+
+        for ($y = 0; $y < $h; $y += $stepY) {
+            for ($x = 0; $x < $w; $x += $stepX) {
                 $rgb = \imagecolorat($image, $x, $y);
                 $r = ($rgb >> 16) & 0xFF;
                 $g = ($rgb >> 8) & 0xFF;
                 $b = $rgb & 0xFF;
                 $gray = (int) (($r * 299 + $g * 587 + $b * 114) / 1000);
                 $histogram[$gray]++;
+                $sampledPixels++;
             }
+        }
+
+        if ($sampledPixels === 0) {
+            return 128;
         }
 
         $sum = 0;
@@ -158,7 +195,7 @@ class ImagePreprocessor
                 continue;
             }
 
-            $wF = $totalPixels - $wB;
+            $wF = $sampledPixels - $wB;
             if ($wF === 0) {
                 break;
             }
