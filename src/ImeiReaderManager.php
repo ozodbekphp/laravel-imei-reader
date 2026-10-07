@@ -217,18 +217,18 @@ class ImeiReaderManager
 
         $quietZone = 30;
         $w = (strlen($bars) * $scale) + ($quietZone * 2);
-        $im = imagecreatetruecolor($w, $height);
+        $im = \imagecreatetruecolor($w, $height);
         if (!$im instanceof GdImage) {
             throw new ImageProcessingException("Failed to create barcode image.");
         }
 
-        $white = (int) imagecolorallocate($im, 255, 255, 255);
-        $black = (int) imagecolorallocate($im, 0, 0, 0);
-        imagefilledrectangle($im, 0, 0, $w, $height, $white);
+        $white = (int) \imagecolorallocate($im, 255, 255, 255);
+        $black = (int) \imagecolorallocate($im, 0, 0, 0);
+        \imagefilledrectangle($im, 0, 0, $w, $height, $white);
 
         for ($i = 0; $i < strlen($bars); $i++) {
             if ($bars[$i] === '1') {
-                imagefilledrectangle(
+                \imagefilledrectangle(
                     $im,
                     $quietZone + ($i * $scale),
                     8,
@@ -240,9 +240,9 @@ class ImeiReaderManager
         }
 
         ob_start();
-        imagepng($im);
+        \imagepng($im);
         $png = (string) ob_get_clean();
-        imagedestroy($im);
+        \imagedestroy($im);
 
         return 'data:image/png;base64,' . base64_encode($png);
     }

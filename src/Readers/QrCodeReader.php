@@ -28,8 +28,8 @@ class QrCodeReader implements ReaderInterface
         }
 
         try {
-            $w = imagesx($image);
-            $h = imagesy($image);
+            $w = \imagesx($image);
+            $h = \imagesy($image);
 
             $targetImage = $image;
             $needDestroy = false;
@@ -44,20 +44,20 @@ class QrCodeReader implements ReaderInterface
                     $newW = (int) round(($w / $h) * $maxDim);
                 }
 
-                $resized = imagecreatetruecolor($newW, $newH);
+                $resized = \imagecreatetruecolor($newW, $newH);
                 if ($resized instanceof GdImage) {
-                    imagecopyresampled($resized, $image, 0, 0, 0, 0, $newW, $newH, $w, $h);
+                    \imagecopyresampled($resized, $image, 0, 0, 0, 0, $newW, $newH, $w, $h);
                     $targetImage = $resized;
                     $needDestroy = true;
                 }
             }
 
             ob_start();
-            imagepng($targetImage);
+            \imagepng($targetImage);
             $blob = (string) ob_get_clean();
 
             if ($needDestroy && $targetImage instanceof GdImage) {
-                imagedestroy($targetImage);
+                \imagedestroy($targetImage);
             }
 
             $qrReader = new QrReader($blob, QrReader::SOURCE_TYPE_BLOB);

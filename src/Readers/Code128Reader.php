@@ -47,7 +47,7 @@ class Code128Reader implements ReaderInterface
 
     public function isAvailable(): bool
     {
-        return function_exists('imagecreatetruecolor');
+        return \function_exists('imagecreatetruecolor');
     }
 
     /**
@@ -55,7 +55,7 @@ class Code128Reader implements ReaderInterface
      */
     public function decode(GdImage $image): array
     {
-        $h = imagesy($image);
+        $h = \imagesy($image);
         if ($h < 5) {
             return [];
         }

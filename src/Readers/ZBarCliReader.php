@@ -51,7 +51,7 @@ class ZBarCliReader implements ReaderInterface
         @unlink($tmpFile);
 
         try {
-            imagepng($image, $tmpPng);
+            \imagepng($image, $tmpPng);
 
             $bin = $this->binaryPath ?? 'zbarimg';
             $process = new Process([$bin, '--raw', '-q', $tmpPng]);
