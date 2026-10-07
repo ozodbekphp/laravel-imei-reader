@@ -28,10 +28,37 @@ class QrCodeReader implements ReaderInterface
         }
 
         try {
-            // Convert to PNG blob in memory for maximum compatibility
+            $w = imagesx($image);
+            $h = imagesy($image);
+
+            $targetImage = $image;
+            $needDestroy = false;
+            $maxDim = 600;
+
+            if ($w > $maxDim || $h > $maxDim) {
+                if ($w > $h) {
+                    $newW = $maxDim;
+                    $newH = (int) round(($h / $w) * $maxDim);
+                } else {
+                    $newH = $maxDim;
+                    $newW = (int) round(($w / $h) * $maxDim);
+                }
+
+                $resized = imagecreatetruecolor($newW, $newH);
+                if ($resized instanceof GdImage) {
+                    imagecopyresampled($resized, $image, 0, 0, 0, 0, $newW, $newH, $w, $h);
+                    $targetImage = $resized;
+                    $needDestroy = true;
+                }
+            }
+
             ob_start();
-            imagepng($image);
+            imagepng($targetImage);
             $blob = (string) ob_get_clean();
+
+            if ($needDestroy && $targetImage instanceof GdImage) {
+                imagedestroy($targetImage);
+            }
 
             $qrReader = new QrReader($blob, QrReader::SOURCE_TYPE_BLOB);
             $text = $qrReader->text();
