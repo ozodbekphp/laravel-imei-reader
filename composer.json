@@ -1,8 +1,12 @@
-{
-    "name": "ozodbek/laravel-imei-reader",
-    "description": "High-performance PHP & Laravel library to read barcodes and extract 15-digit IMEIs from Base64 images with Luhn validation.",
+    "name": "ozodbekphp/laravel-imei-reader",
+    "description": "High-performance PHP & Laravel package to decode barcodes and extract 15-digit IMEIs from Base64 images with Luhn validation.",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://github.com/ozodbekphp/laravel-imei-reader",
+    "support": {
+        "issues": "https://github.com/ozodbekphp/laravel-imei-reader/issues",
+        "source": "https://github.com/ozodbekphp/laravel-imei-reader"
+    },
     "keywords": [
         "php",
         "laravel",
@@ -18,7 +22,8 @@
     ],
     "authors": [
         {
-            "name": "Ozodbek",
+            "name": "Ozodbek Qurbonov",
+            "email": "qurbonovo2008@gmail.com",
             "role": "Developer"
         }
     ],

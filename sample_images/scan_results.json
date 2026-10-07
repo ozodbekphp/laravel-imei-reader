@@ -1,0 +1,205 @@
+{
+    "Sample 1 (Samsung Galaxy S24 Ultra Dual SIM Sticker)": {
+        "file": "sample_images/sample1_samsung_dual_sim.png",
+        "base64": "data:image/png;base64,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",
+        "execution_time_ms": 81.21,
+        "result": {
+            "success": true,
+            "count": 2,
+            "primary_imei": "861234567890127",
+            "imei1": "861234567890127",
+            "imei2": "356938035643809",
+            "is_dual_sim": true,
+            "is_luhn_valid": true,
+            "imeis": [
+                "861234567890127",
+                "356938035643809"
+            ],
+            "imei_details": {
+                "861234567890127": {
+                    "imei": "861234567890127",
+                    "is_structure_valid": true,
+                    "is_luhn_valid": true,
+                    "tac": "86123456",
+                    "serial": "789012",
+                    "check_digit": 7,
+                    "calculated_check_digit": 7
+                },
+                "356938035643809": {
+                    "imei": "356938035643809",
+                    "is_structure_valid": true,
+                    "is_luhn_valid": true,
+                    "tac": "35693803",
+                    "serial": "564380",
+                    "check_digit": 9,
+                    "calculated_check_digit": 9
+                }
+            },
+            "barcodes": [
+                {
+                    "text": "861234567890127",
+                    "format": "CODE_128",
+                    "imeis": [
+                        "861234567890127"
+                    ],
+                    "confidence": 1,
+                    "metadata": {
+                        "scan_row": 86,
+                        "threshold": 120
+                    }
+                },
+                {
+                    "text": "356938035643809",
+                    "format": "CODE_128",
+                    "imeis": [
+                        "356938035643809"
+                    ],
+                    "confidence": 1,
+                    "metadata": {
+                        "scan_row": 170,
+                        "threshold": 120
+                    }
+                }
+            ],
+            "raw_texts": [
+                "861234567890127",
+                "356938035643809"
+            ]
+        }
+    },
+    "Sample 2 (Apple iPhone 15 Pro Max Box Label)": {
+        "file": "sample_images/sample2_iphone_box_label.png",
+        "base64": "data:image/png;base64,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",
+        "execution_time_ms": 55.29,
+        "result": {
+            "success": true,
+            "count": 1,
+            "primary_imei": "354890091234563",
+            "imei1": "354890091234563",
+            "imei2": null,
+            "is_dual_sim": false,
+            "is_luhn_valid": true,
+            "imeis": [
+                "354890091234563"
+            ],
+            "imei_details": {
+                "354890091234563": {
+                    "imei": "354890091234563",
+                    "is_structure_valid": true,
+                    "is_luhn_valid": true,
+                    "tac": "35489009",
+                    "serial": "123456",
+                    "check_digit": 3,
+                    "calculated_check_digit": 3
+                }
+            },
+            "barcodes": [
+                {
+                    "text": "354890091234563",
+                    "format": "CODE_128",
+                    "imeis": [
+                        "354890091234563"
+                    ],
+                    "confidence": 1,
+                    "metadata": {
+                        "scan_row": 92,
+                        "threshold": 100
+                    }
+                }
+            ],
+            "raw_texts": [
+                "354890091234563"
+            ]
+        }
+    },
+    "Sample 3 (Xiaomi 14 Pro Sticker Rotated 90\u00b0)": {
+        "file": "sample_images/sample3_xiaomi_rotated_90deg.png",
+        "base64": "data:image/png;base64,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",
+        "execution_time_ms": 241.84,
+        "result": {
+            "success": true,
+            "count": 1,
+            "primary_imei": "867543021987657",
+            "imei1": "867543021987657",
+            "imei2": null,
+            "is_dual_sim": false,
+            "is_luhn_valid": true,
+            "imeis": [
+                "867543021987657"
+            ],
+            "imei_details": {
+                "867543021987657": {
+                    "imei": "867543021987657",
+                    "is_structure_valid": true,
+                    "is_luhn_valid": true,
+                    "tac": "86754302",
+                    "serial": "198765",
+                    "check_digit": 7,
+                    "calculated_check_digit": 7
+                }
+            },
+            "barcodes": [
+                {
+                    "text": "867543021987657",
+                    "format": "CODE_128",
+                    "imeis": [
+                        "867543021987657"
+                    ],
+                    "confidence": 1,
+                    "metadata": {
+                        "scan_row": 90,
+                        "threshold": 100
+                    }
+                }
+            ],
+            "raw_texts": [
+                "867543021987657"
+            ]
+        }
+    },
+    "Sample 4 (Standalone 15-Digit IMEI Barcode)": {
+        "file": "sample_images/sample4_single_barcode.png",
+        "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAc4AAABVCAIAAABPUpPTAAAACXBIWXMAAA7EAAAOxAGVKw4bAAABnUlEQVR4nO3bwYrCMAAA0c3i//9yvPVgoDTVQZD3jjYJoSlDD3XMOf8AKP1/ewMAv09qAXJSC5CTWoCc1ALkpBYgJ7UAuUe39Bjj5ZfjG97j0vpV7zprnb4OPvk6eGvMyVbfvLS6ss6bOzyZvrXO1vR7s9ZLqytHeTK4u8/3jvtTT8vWVg/3zvTK9HvrbJ3F6lOPaPc/A2+1ADmpBchJLUBOagFyUguQk1qAnNQC5KQWICe1ADmpBchJLUBOagFyUguQk1qAnNQC5KQWICe1ADmpBchJLUBOagFyUguQk1qAnNQC5KQWICe1ADmpBchJLUBOagFyUguQk1qAnNQC5KQWICe1ADmpBchJLUBOagFyUguQk1qAnNQC5KQWICe1ADmpBchJLUBOagFyUguQk1qAnNQC5KQWICe1ADmpBchJLUBOagFyUguQk1qAnNQC5KQWICe1ADmpBchJLUBOagFyUguQk1qAnNQC5KQWICe1ADmpBchJLUBOagFyUguQG3POb+8B4Md5qwXISS1ATmoBclILkJNagJzUAuSeQUl1pYOLw8AAAAAASUVORK5CYII=",
+        "execution_time_ms": 25.03,
+        "result": {
+            "success": true,
+            "count": 1,
+            "primary_imei": "358901234567896",
+            "imei1": "358901234567896",
+            "imei2": null,
+            "is_dual_sim": false,
+            "is_luhn_valid": true,
+            "imeis": [
+                "358901234567896"
+            ],
+            "imei_details": {
+                "358901234567896": {
+                    "imei": "358901234567896",
+                    "is_structure_valid": true,
+                    "is_luhn_valid": true,
+                    "tac": "35890123",
+                    "serial": "456789",
+                    "check_digit": 6,
+                    "calculated_check_digit": 6
+                }
+            },
+            "barcodes": [
+                {
+                    "text": "358901234567896",
+                    "format": "CODE_128",
+                    "imeis": [
+                        "358901234567896"
+                    ],
+                    "confidence": 1,
+                    "metadata": {
+                        "scan_row": 8,
+                        "threshold": 20
+                    }
+                }
+            ],
+            "raw_texts": [
+                "358901234567896"
+            ]
+        }
+    }
+}

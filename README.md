@@ -1,6 +1,6 @@
 # Laravel IMEI & Barcode Reader 📱🔍
 
-[![Latest Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://packagist.org/packages/ozodbek/laravel-imei-reader)
+[![Latest Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://packagist.org/packages/ozodbekphp/laravel-imei-reader)
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.1-777BB4.svg)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-FF2D20.svg)](https://laravel.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -26,7 +26,7 @@ Base64 rasmlardan yoki fayllardan shtrix-kodlar (Code 128, Code 39, EAN-13, ITF,
 
 ### 1. Packagist orqali (Kutubxona yuklash mutlaqo BEPUL):
 ```bash
-composer require ozodbek/laravel-imei-reader
+composer require ozodbekphp/laravel-imei-reader
 ```
 
 ### 2. Mahalliy loyihada ishlatish (Local Path Repository):
@@ -42,7 +42,7 @@ Agar kutubxonani Packagist ga chiqarmasdan o'z kompyuteringizdagi Laravel loyiha
 ```
 So'ngra buyruqni bering:
 ```bash
-composer require ozodbek/laravel-imei-reader
+composer require ozodbekphp/laravel-imei-reader
 ```
 
 ---
@@ -222,7 +222,7 @@ PHP Composer kutubxonalari ekotizimi mutlaqo tekin:
 1. Loyihangizni o'zingizning **GitHub** akkauntingizga yuklaysiz (`git push origin main`).
 2. [Packagist.org](https://packagist.org) saytiga bepul ro'yxatdan o'tasiz.
 3. **Submit** bo'limiga GitHub repository havolasini kiritasiz.
-4. Shundan so'ng butun dunyo bo'ylab har qanday dasturchi `composer require ozodbek/laravel-imei-reader` orqali bepul yuklab oladi!
+4. Shundan so'ng butun dunyo bo'ylab har qanday dasturchi `composer require ozodbekphp/laravel-imei-reader` orqali bepul yuklab oladi!
 
 ---
 
