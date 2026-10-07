@@ -244,7 +244,46 @@ class ImagePreprocessor
             $r = ($rgb >> 16) & 0xFF;
             $g = ($rgb >> 8) & 0xFF;
             $b = $rgb & 0xFF;
-            $gray = (int) (($r * 299 + $g * 587 + $b * 114) / 1000);
+            $gray = ($r * 77 + $g * 150 + $b * 29) >> 8;
+            $isBlack = ($gray < $threshold);
+
+            if ($currColor === null) {
+                $currColor = $isBlack;
+                $currLen = 1;
+            } elseif ($currColor === $isBlack) {
+                $currLen++;
+            } else {
+                $runs[] = ['black' => $currColor, 'width' => $currLen];
+                $currColor = $isBlack;
+                $currLen = 1;
+            }
+        }
+
+        if ($currColor !== null) {
+            $runs[] = ['black' => $currColor, 'width' => $currLen];
+        }
+
+        return $runs;
+    }
+
+    /**
+     * Extract run-length encoded bars from a column of pixels.
+     *
+     * @return array<array{black: bool, width: int}>
+     */
+    public static function extractColRuns(GdImage $image, int $x, int $threshold = 128): array
+    {
+        $h = \imagesy($image);
+        $runs = [];
+        $currColor = null;
+        $currLen = 0;
+
+        for ($y = 0; $y < $h; $y++) {
+            $rgb = \imagecolorat($image, $x, $y);
+            $r = ($rgb >> 16) & 0xFF;
+            $g = ($rgb >> 8) & 0xFF;
+            $b = $rgb & 0xFF;
+            $gray = ($r * 77 + $g * 150 + $b * 29) >> 8;
             $isBlack = ($gray < $threshold);
 
             if ($currColor === null) {

@@ -102,7 +102,7 @@ class Code128Reader implements ReaderInterface
      *
      * @param array<array{black: bool, width: int}> $runs
      */
-    protected function decodeRowRuns(array $runs): ?string
+    public function decodeRowRuns(array $runs): ?string
     {
         $numRuns = count($runs);
         if ($numRuns < 13) {

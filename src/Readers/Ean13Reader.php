@@ -88,7 +88,7 @@ class Ean13Reader implements ReaderInterface
     /**
      * @param array<array{black: bool, width: int}> $runs
      */
-    protected function decodeRowRuns(array $runs): ?string
+    public function decodeRowRuns(array $runs): ?string
     {
         $numRuns = count($runs);
         // EAN-13: 3 start + 24 left (6x4) + 5 center + 24 right (6x4) + 3 stop = 59 runs

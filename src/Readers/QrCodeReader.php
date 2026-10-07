@@ -53,7 +53,7 @@ class QrCodeReader implements ReaderInterface
             }
 
             ob_start();
-            \imagepng($targetImage);
+            \imagepng($targetImage, null, 0);
             $blob = (string) ob_get_clean();
 
             if ($needDestroy && $targetImage instanceof GdImage) {
