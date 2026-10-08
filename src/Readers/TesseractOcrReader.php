@@ -48,6 +48,22 @@ class TesseractOcrReader implements ReaderInterface
             return [];
         }
 
+        // Dynamically raise memory limit if running under a low default (e.g. 128M)
+        $currentLimit = ini_get('memory_limit');
+        if ($currentLimit !== false && $currentLimit !== '-1') {
+            $bytes = (int) $currentLimit;
+            if (str_ends_with(strtoupper((string) $currentLimit), 'M')) {
+                $bytes *= 1024 * 1024;
+            } elseif (str_ends_with(strtoupper((string) $currentLimit), 'G')) {
+                $bytes *= 1024 * 1024 * 1024;
+            } elseif (str_ends_with(strtoupper((string) $currentLimit), 'K')) {
+                $bytes *= 1024;
+            }
+            if ($bytes > 0 && $bytes < 256 * 1024 * 1024) {
+                @ini_set('memory_limit', '256M');
+            }
+        }
+
         $w = \imagesx($image);
         $h = \imagesy($image);
         if ($w < 10 || $h < 10) {
@@ -113,6 +129,7 @@ class TesseractOcrReader implements ReaderInterface
                 if (file_exists($tmpPng)) {
                     @unlink($tmpPng);
                 }
+                gc_collect_cycles();
             }
         }
 
@@ -120,7 +137,7 @@ class TesseractOcrReader implements ReaderInterface
     }
 
     /**
-     * Preprocess an image band with 2.5x upscaling, grayscale conversion, and contrast stretching.
+     * Preprocess an image band with memory-safe dimensions, grayscale conversion, and in-place contrast stretching.
      */
     protected function prepareOptimizedImageBand(GdImage $image, int $w, int $h, float $y1Ratio, float $y2Ratio): ?string
     {
@@ -128,53 +145,42 @@ class TesseractOcrReader implements ReaderInterface
         $y2 = (int)($h * $y2Ratio);
         $bh = max(1, $y2 - $y1);
 
-        // Upscale factor for clear OCR font strokes
-        $scale = 2.5;
-        $sw = (int)($w * $scale);
-        $sh = (int)($bh * $scale);
+        // Normalize width to ideal OCR target (~1400px), never exceeding 1500px to protect memory
+        $targetW = 1400;
+        $scale = min(2.5, max(0.3, $targetW / max(1, $w)));
+        $sw = min(1500, max(100, (int)round($w * $scale)));
+        $sh = min(1500, max(50, (int)round($bh * $scale)));
 
-        $crop = \imagecreatetruecolor($sw, $sh);
-        if (!$crop instanceof GdImage) {
+        $gray = \imagecreatetruecolor($sw, $sh);
+        if (!$gray instanceof GdImage) {
             return null;
         }
 
-        \imagecopyresampled($crop, $image, 0, 0, 0, $y1, $sw, $sh, $w, $bh);
+        // Resample directly from source image into $gray (zero extra image allocations!)
+        \imagecopyresampled($gray, $image, 0, 0, 0, $y1, $sw, $sh, $w, $bh);
 
-        // Contrast stretch to grayscale
+        // Fast in-place contrast stretch (samples every 4th pixel for speed)
         $minV = 255;
         $maxV = 0;
-        for ($y = 0; $y < $sh; $y += 2) {
-            for ($x = 0; $x < $sw; $x += 2) {
-                $rgb = \imagecolorat($crop, $x, $y);
-                $r = ($rgb >> 16) & 0xFF;
-                $g = ($rgb >> 8) & 0xFF;
-                $b = $rgb & 0xFF;
-                $v = (int)(($r * 77 + $g * 150 + $b * 29) >> 8);
+        for ($y = 0; $y < $sh; $y += 4) {
+            for ($x = 0; $x < $sw; $x += 4) {
+                $rgb = \imagecolorat($gray, $x, $y);
+                $v = (int)((($rgb >> 16 & 0xFF) * 77 + ($rgb >> 8 & 0xFF) * 150 + ($rgb & 0xFF) * 29) >> 8);
                 if ($v < $minV) $minV = $v;
                 if ($v > $maxV) $maxV = $v;
             }
         }
 
         $rng = max(1, $maxV - $minV);
-        $gray = \imagecreatetruecolor($sw, $sh);
-        if (!$gray instanceof GdImage) {
-            \imagedestroy($crop);
-            return null;
-        }
-
         for ($y = 0; $y < $sh; $y++) {
             for ($x = 0; $x < $sw; $x++) {
-                $rgb = \imagecolorat($crop, $x, $y);
-                $r = ($rgb >> 16) & 0xFF;
-                $g = ($rgb >> 8) & 0xFF;
-                $b = $rgb & 0xFF;
-                $v = (int)(($r * 77 + $g * 150 + $b * 29) >> 8);
+                $rgb = \imagecolorat($gray, $x, $y);
+                $v = (int)((($rgb >> 16 & 0xFF) * 77 + ($rgb >> 8 & 0xFF) * 150 + ($rgb & 0xFF) * 29) >> 8);
                 $nv = max(0, min(255, (int)(($v - $minV) * 255 / $rng)));
                 $c = (int)\imagecolorallocate($gray, $nv, $nv, $nv);
                 \imagesetpixel($gray, $x, $y, $c);
             }
         }
-        \imagedestroy($crop);
 
         $tmpFile = tempnam(sys_get_temp_dir(), 'ocr_band_');
         if ($tmpFile === false) {

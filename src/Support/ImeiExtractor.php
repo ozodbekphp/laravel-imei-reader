@@ -208,6 +208,12 @@ class ImeiExtractor
         $luhnValidOnly = array_values(array_filter($uniqueImeis, fn (string $im) => LuhnValidator::validate($im)));
         if (!empty($luhnValidOnly)) {
             $uniqueImeis = $luhnValidOnly;
+            if ($imei1 !== null && !LuhnValidator::validate($imei1)) {
+                $imei1 = null;
+            }
+            if ($imei2 !== null && !LuhnValidator::validate($imei2)) {
+                $imei2 = null;
+            }
         }
 
         $primaryImei = $uniqueImeis[0] ?? null;
