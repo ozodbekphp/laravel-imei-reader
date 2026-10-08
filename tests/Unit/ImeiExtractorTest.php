@@ -39,6 +39,27 @@ class ImeiExtractorTest extends TestCase
         $this->assertEquals('861234567890127', $imeis[0]);
     }
 
+    public function test_extract_spaced_and_dashed_imei(): void
+    {
+        $text = "IMEI 1: 86 1234 5678 9012 7\nIMEI2: 35-693803-564380-9";
+        $imeis = ImeiExtractor::extractFromText($text);
+
+        $this->assertCount(2, $imeis);
+        $this->assertEquals('861234567890127', $imeis[0]);
+        $this->assertEquals('356938035643809', $imeis[1]);
+        $this->assertMatchesRegularExpression('/^[0-9]{15}$/', $imeis[0]);
+        $this->assertMatchesRegularExpression('/^[0-9]{15}$/', $imeis[1]);
+    }
+
+    public function test_extract_ignores_non_digits_and_invalid_lengths(): void
+    {
+        $text = "Serial: ABC123456789012\nModel: SM-G998B\nIMEI: 861234567890127";
+        $imeis = ImeiExtractor::extractFromText($text);
+
+        $this->assertCount(1, $imeis);
+        $this->assertEquals('861234567890127', $imeis[0]);
+    }
+
     public function test_build_scan_result(): void
     {
         $barcodes = [

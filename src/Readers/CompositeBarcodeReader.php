@@ -31,7 +31,9 @@ class CompositeBarcodeReader implements ReaderInterface
                 new Code128Reader(),
                 new Code39Reader(),
                 new Ean13Reader(),
+                new ZBarCliReader(),
                 new QrCodeReader(),
+                new TesseractOcrReader(),
             ];
         } else {
             $this->readers = $readers;
@@ -56,6 +58,12 @@ class CompositeBarcodeReader implements ReaderInterface
     }
 
     /**
+     * Tiered barcode & OCR decoder:
+     * 1. Ultra-fast pure PHP scanlines (1-2ms, preserves natural top-to-bottom sticker order)
+     * 2. ZBar C-engine (15ms, handles tilted / curved / glare-affected barcodes)
+     * 3. QR / 2D reader
+     * 4. Tesseract OCR (reads printed "IMEI 1: 86...", "IMEI 2: 86..." text when barcodes are unreadable)
+     *
      * @return array<BarcodeResult>
      */
     public function decode(GdImage $image): array
@@ -64,21 +72,33 @@ class CompositeBarcodeReader implements ReaderInterface
         $seenTexts = [];
 
         $scanlineReaders = [];
+        $zbarReader = null;
+        $qrReader = null;
+        $ocrReader = null;
         $otherReaders = [];
 
         foreach ($this->readers as $r) {
             if ($r instanceof Code128Reader || $r instanceof Code39Reader || $r instanceof Ean13Reader) {
                 $scanlineReaders[] = $r;
+            } elseif ($r instanceof ZBarCliReader) {
+                $zbarReader = $r;
+            } elseif ($r instanceof QrCodeReader) {
+                $qrReader = $r;
+            } elseif ($r instanceof TesseractOcrReader) {
+                $ocrReader = $r;
             } else {
                 $otherReaders[] = $r;
             }
         }
 
-        // 1. FAST PATH: Scan 1D Scanline Readers (Code 128, Code 39, EAN-13)
+        // --- TIER 1: FAST PURE-PHP 1D SCANLINES (~1-2ms, maintains vertical top-to-bottom layout) ---
         if (!empty($scanlineReaders)) {
-            $results = $this->decodeScanlines($image, $scanlineReaders, $seenTexts);
+            $scanResults = $this->decodeScanlines($image, $scanlineReaders, $seenTexts);
+            foreach ($scanResults as $barcode) {
+                $results[] = $barcode;
+            }
+
             if (!empty($results)) {
-                // If we found any barcode containing a 15-digit IMEI, return immediately!
                 foreach ($results as $res) {
                     if (!empty($res->imeis)) {
                         return $results;
@@ -87,57 +107,73 @@ class CompositeBarcodeReader implements ReaderInterface
             }
         }
 
-        // 2. 2D / Other Readers (QR Code, ZBar, etc.)
+        // --- TIER 2: ZBAR C-ENGINE (~15ms, handles tilted, skewed, low contrast barcodes) ---
+        if ($zbarReader !== null && $zbarReader->isAvailable()) {
+            $zbarResults = $zbarReader->decode($image);
+            foreach ($zbarResults as $barcode) {
+                if (!isset($seenTexts[$barcode->text])) {
+                    $seenTexts[$barcode->text] = true;
+                    $results[] = $barcode;
+                }
+            }
+
+            if (!empty($results)) {
+                $hasImei = false;
+                foreach ($results as $res) {
+                    if (!empty($res->imeis)) {
+                        $hasImei = true;
+                        break;
+                    }
+                }
+                if ($hasImei) {
+                    return $results;
+                }
+            }
+        }
+
+        // --- TIER 3: 2D QR CODE SCAN ---
+        if ($qrReader !== null && $qrReader->isAvailable()) {
+            $qrResults = $qrReader->decode($image);
+            foreach ($qrResults as $barcode) {
+                if (!isset($seenTexts[$barcode->text])) {
+                    $seenTexts[$barcode->text] = true;
+                    $results[] = $barcode;
+                }
+            }
+
+            if (!empty($results)) {
+                return $results;
+            }
+        }
+
+        // --- TIER 4: OTHER CUSTOM READERS ---
         if (!empty($otherReaders)) {
             foreach ($otherReaders as $reader) {
                 if (!$reader->isAvailable()) {
                     continue;
                 }
-                $decodedList = $reader->decode($image);
-                foreach ($decodedList as $barcode) {
+                $customResults = $reader->decode($image);
+                foreach ($customResults as $barcode) {
                     if (!isset($seenTexts[$barcode->text])) {
                         $seenTexts[$barcode->text] = true;
                         $results[] = $barcode;
                     }
                 }
-                if (!empty($results)) {
-                    return $results;
-                }
             }
 
-            // If still not found, other custom readers are present, and rotations are enabled
-            if ($this->enableRotations && empty($results)) {
-                $hasCustomNonQr = false;
-                foreach ($otherReaders as $reader) {
-                    if (!$reader instanceof QrCodeReader) {
-                        $hasCustomNonQr = true;
-                        break;
-                    }
-                }
+            if (!empty($results)) {
+                return $results;
+            }
+        }
 
-                if ($hasCustomNonQr) {
-                    $angles = [90, 180, 270];
-                    foreach ($angles as $angle) {
-                        $rotated = ImagePreprocessor::rotate($image, (float) $angle);
-                        foreach ($otherReaders as $reader) {
-                            if (!$reader->isAvailable() || $reader instanceof QrCodeReader) {
-                                continue;
-                            }
-                            $decodedList = $reader->decode($rotated);
-                            foreach ($decodedList as $barcode) {
-                                if (!isset($seenTexts[$barcode->text])) {
-                                    $seenTexts[$barcode->text] = true;
-                                    $results[] = $barcode;
-                                }
-                            }
-                        }
-                        if ($rotated instanceof GdImage && $rotated !== $image) {
-                            \imagedestroy($rotated);
-                        }
-                        if (!empty($results)) {
-                            return $results;
-                        }
-                    }
+        // --- TIER 5: LOCAL TESSERACT OCR FALLBACK ---
+        // Reads printed "IMEI 1: 862143...", "IMEI 2: 862143..." text
+        if ($ocrReader !== null && $ocrReader->isAvailable()) {
+            $ocrResults = $ocrReader->decode($image);
+            foreach ($ocrResults as $barcode) {
+                if (!isset($seenTexts[$barcode->text])) {
+                    $seenTexts[$barcode->text] = true;
+                    $results[] = $barcode;
                 }
             }
         }

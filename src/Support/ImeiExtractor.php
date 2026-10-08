@@ -10,7 +10,8 @@ use Ozodbek\LaravelImeiReader\DTO\ImeiScanResult;
 class ImeiExtractor
 {
     /**
-     * Extract 15-digit IMEIs from text.
+     * Extract purely 15-digit numeric IMEIs from raw text or OCR string.
+     * Guaranteed to return only clean 15-digit numbers without letters or symbols.
      *
      * @return array<string>
      */
@@ -18,18 +19,23 @@ class ImeiExtractor
     {
         $imeis = [];
 
-        // 1. Check for labeled patterns (IMEI1, IMEI2, IMEI, etc.)
-        if (preg_match_all('/(?:IMEI|IMEI\s*1|IMEI\s*2|MEID|TAC)?[:\s\-\/]*([0-9]{15})/i', $text, $matches)) {
-            foreach ($matches[1] as $candidate) {
-                if (LuhnValidator::isValidStructure($candidate)) {
-                    if (!$strictLuhn || LuhnValidator::validate($candidate)) {
-                        $imeis[] = $candidate;
+        // 1. Check for labeled patterns (IMEI 1, IMEI 2, IMEI1, IMEI2, IMEI, MEID, TAC, etc.)
+        // Matches e.g. "IMEI 1: 862143 05 012345 6" or "IMEI2: 862143050123457"
+        if (preg_match_all('/(?:IMEI\s*[12]|IMEI_?[12]|IMEI|MEID|TAC)[:\s\-\/]*([0-9\s\-\/]{15,25})/i', $text, $matches)) {
+            foreach ($matches[1] as $rawCandidate) {
+                $digits = preg_replace('/\D/', '', $rawCandidate);
+                if (strlen($digits) >= 15) {
+                    $candidate = substr($digits, 0, 15);
+                    if (LuhnValidator::isValidStructure($candidate)) {
+                        if (!$strictLuhn || LuhnValidator::validate($candidate)) {
+                            $imeis[] = $candidate;
+                        }
                     }
                 }
             }
         }
 
-        // 2. Generic 15-digit numeric sequence finder
+        // 2. Continuous 15-digit numeric sequences
         if (preg_match_all('/(?<!\d)(\d{15})(?!\d)/', $text, $matches)) {
             foreach ($matches[1] as $candidate) {
                 if (LuhnValidator::isValidStructure($candidate)) {
@@ -40,7 +46,21 @@ class ImeiExtractor
             }
         }
 
-        // 3. Check for 14-digit IMEIs with check digit appended after slash (e.g. 35693803564380/3)
+        // 3. Spaced or dashed 15-digit sequences (e.g., "862143 05 012345 6" or "862143-05-012345-6")
+        if (preg_match_all('/(?<!\d)(\d{2,8}[\s\-\/]\d{2,8}(?:[\s\-\/]\d{1,8})+)(?!\d)/', $text, $matches)) {
+            foreach ($matches[1] as $rawCandidate) {
+                $digits = preg_replace('/\D/', '', $rawCandidate);
+                if (strlen($digits) === 15) {
+                    if (LuhnValidator::isValidStructure($digits)) {
+                        if (!$strictLuhn || LuhnValidator::validate($digits)) {
+                            $imeis[] = $digits;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Check for 14-digit IMEIs with check digit appended after slash (e.g. 35693803564380/3)
         if (preg_match_all('/(?<!\d)(\d{14})[\/\-](\d{1,2})(?!\d)/', $text, $matches)) {
             foreach ($matches[1] as $idx => $first14) {
                 $check = substr($matches[2][$idx], 0, 1);
@@ -57,7 +77,7 @@ class ImeiExtractor
     }
 
     /**
-     * Build an ImeiScanResult from a list of decoded barcode results.
+     * Build an ImeiScanResult from a list of decoded barcode/OCR results.
      *
      * @param array<BarcodeResult> $barcodes
      */
@@ -71,20 +91,24 @@ class ImeiExtractor
         foreach ($barcodes as $barcode) {
             $rawTexts[] = $barcode->text;
 
-            // Check if barcode text explicitly specifies IMEI 1 or IMEI 2
-            if (preg_match('/(?:IMEI\s*1|IMEI_1)[:\s\-]*([0-9]{15})/i', $barcode->text, $m1)) {
-                $candidate = $m1[1];
-                if (!$strictLuhn || LuhnValidator::validate($candidate)) {
-                    $imei1 ??= $candidate;
-                    $allImeis[] = $candidate;
+            // Check if text explicitly specifies IMEI 1 or IMEI 2
+            if (preg_match('/(?:IMEI\s*1|IMEI_?1)[:\s\-\/]*([0-9\s\-\/]{15,25})/i', $barcode->text, $m1)) {
+                $candidate = substr(preg_replace('/\D/', '', $m1[1]), 0, 15);
+                if (strlen($candidate) === 15 && LuhnValidator::isValidStructure($candidate)) {
+                    if (!$strictLuhn || LuhnValidator::validate($candidate)) {
+                        $imei1 ??= $candidate;
+                        $allImeis[] = $candidate;
+                    }
                 }
             }
 
-            if (preg_match('/(?:IMEI\s*2|IMEI_2)[:\s\-]*([0-9]{15})/i', $barcode->text, $m2)) {
-                $candidate = $m2[1];
-                if (!$strictLuhn || LuhnValidator::validate($candidate)) {
-                    $imei2 ??= $candidate;
-                    $allImeis[] = $candidate;
+            if (preg_match('/(?:IMEI\s*2|IMEI_?2)[:\s\-\/]*([0-9\s\-\/]{15,25})/i', $barcode->text, $m2)) {
+                $candidate = substr(preg_replace('/\D/', '', $m2[1]), 0, 15);
+                if (strlen($candidate) === 15 && LuhnValidator::isValidStructure($candidate)) {
+                    if (!$strictLuhn || LuhnValidator::validate($candidate)) {
+                        $imei2 ??= $candidate;
+                        $allImeis[] = $candidate;
+                    }
                 }
             }
 

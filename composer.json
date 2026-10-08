@@ -33,6 +33,7 @@
         "ext-gd": "*",
         "ext-json": "*",
         "ext-ctype": "*",
+        "symfony/process": "^6.0 || ^7.0",
         "khanamiryan/qrcode-detector-decoder": "^1.0 || ^2.0"
     },
     "require-dev": {

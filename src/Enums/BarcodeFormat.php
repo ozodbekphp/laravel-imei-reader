@@ -12,5 +12,6 @@ enum BarcodeFormat: string
     case ITF_14 = 'ITF_14';
     case QR_CODE = 'QR_CODE';
     case DATA_MATRIX = 'DATA_MATRIX';
+    case OCR_TEXT = 'OCR_TEXT';
     case UNKNOWN = 'UNKNOWN';
 }

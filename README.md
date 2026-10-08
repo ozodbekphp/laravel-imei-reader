@@ -1,19 +1,22 @@
 # Laravel IMEI & Barcode Reader 📱🔍
 
-[![Latest Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://packagist.org/packages/ozodbekphp/laravel-imei-reader)
+[![Latest Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://packagist.org/packages/ozodbekphp/laravel-imei-reader)
 [![PHP Version](https://img.shields.io/badge/PHP-%3E%3D8.1-777BB4.svg)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-FF2D20.svg)](https://laravel.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Base64 rasmlardan yoki fayllardan shtrix-kodlar (Code 128, Code 39, EAN-13, ITF, QR Code) orqali **15 xonali IMEI** raqamlarini o'qiydigan, Dual-SIM telefon qutilarini taniydigan va **Luhn (Mod 10)** algoritmi orqali tekshiradigan yuqori tezlikdagi PHP va Laravel kutubxonasi.
+Base64 rasmlardan yoki fayllardan shtrix-kodlar (Code 128, Code 39, EAN-13, ITF, QR Code) hamda bosma matnlardan (OCR) **15 xonali IMEI** raqamlarini o'qiydigan, Dual-SIM telefon qutilarini taniydigan va **Luhn (Mod 10)** algoritmi orqali tekshiradigan yuqori tezlikdagi PHP va Laravel kutubxonasi.
 
 ---
 
 ## 🌟 Asosiy imkoniyatlari (Features)
 
-- 📸 **Base64 formatdagi rasmlardan IMEI o'qish**: `data:image/png;base64,...` yoki toza base64 satrlar bilan ishlaydi.
-- 📁 **Fayllardan o'qish**: JPEG, PNG, WEBP, GIF, BMP formatdagi rasm fayllaridan ham o'qiydi.
-- 🔢 **15 xonali IMEI ajratib olish**: Skaner qilingan shtrix-kod matnidan barcha 15 xonali raqamlarni avtomatik topadi (`\b\d{15}\b`, `IMEI:`, `IMEI 1:`, `IMEI 2:`, `S/N:`, `TAC/SNR/CD`).
+- 📸 **Base64 rasmlar va fayllardan o'qish**: `data:image/png;base64,...` yoki toza base64 satrlar va rasm fayllari bilan ishlaydi.
+- ⚡ **Tezkor ko'p bosqichli skanerlash (Tiered Pipeline)**: 
+  1. Pure PHP 1D scanline (1-2ms)
+  2. ZBar C-engine (15ms - qiyshiq/loyqa shtrix-kodlar uchun)
+  3. Tesseract OCR (agar shtrix-kod o'qilmasa, shtrix ostidagi "IMEI 1: 86...", "IMEI 2: 86..." yozuvlarini lokal o'qiydi).
+- 🔢 **Faqat toza 15 xonali raqamlar**: Matndan harflar, tirelar va belgilarni tozalab, faqat toza 15 xonali raqamlarni ajratadi.
 - 📱 **Dual SIM qo'llab-quvvatlash**: 2 ta IMEI bo'lgan qutilardan `IMEI 1` va `IMEI 2` ni alohida ajratib beradi.
 - 🛡️ **Luhn algoritmi (Checksum) tekshiruvi**: IMEI ning 15-chi nazorat raqami (Check Digit) to'g'riligini matematik tekshiradi.
 - 🔄 **Avtomatik burish (Rotation)**: 90°, 180°, 270° burchak ostidagi shtrix-kodlarni ham taniydi.
