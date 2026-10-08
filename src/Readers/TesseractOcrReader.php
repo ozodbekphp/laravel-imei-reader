@@ -7,8 +7,8 @@ namespace Ozodbek\LaravelImeiReader\Readers;
 use GdImage;
 use Ozodbek\LaravelImeiReader\DTO\BarcodeResult;
 use Ozodbek\LaravelImeiReader\Enums\BarcodeFormat;
-use Ozodbek\LaravelImeiReader\Support\ImagePreprocessor;
 use Ozodbek\LaravelImeiReader\Support\ImeiExtractor;
+use Ozodbek\LaravelImeiReader\Support\LuhnValidator;
 use Symfony\Component\Process\Process;
 use Throwable;
 
@@ -50,78 +50,145 @@ class TesseractOcrReader implements ReaderInterface
 
         $w = \imagesx($image);
         $h = \imagesy($image);
+        if ($w < 10 || $h < 10) {
+            return [];
+        }
 
-        // Downscale large images (e.g. 12MP photos) to max 1500px to save RAM and run 5-10x faster
-        $targetImage = $image;
-        $destroyTarget = false;
-        $maxDim = 1500;
+        $bin = $this->binaryPath ?? 'tesseract';
 
-        if ($w > $maxDim || $h > $maxDim) {
-            $ratio = min($maxDim / $w, $maxDim / $h);
-            $newW = (int) round($w * $ratio);
-            $newH = (int) round($h * $ratio);
+        // Smartphone label sticker layout:
+        // Scanning horizontal bands isolates the text from barcode interference.
+        $bands = [
+            ['y1' => 0.28, 'y2' => 0.75], // Main IMEI sticker area
+            ['y1' => 0.40, 'y2' => 0.68], // Focused dual-IMEI center
+            ['y1' => 0.48, 'y2' => 0.65], // Lower IMEI center (IMEI 2)
+            ['y1' => 0.00, 'y2' => 1.00], // Full image fallback
+        ];
 
-            $resized = \imagecreatetruecolor($newW, $newH);
-            if ($resized instanceof GdImage) {
-                \imagecopyresampled($resized, $image, 0, 0, 0, 0, $newW, $newH, $w, $h);
-                $targetImage = $resized;
-                $destroyTarget = true;
+        $allResults = [];
+        $collectedLuhnImeis = [];
+
+        foreach ($bands as $band) {
+            $tmpPng = $this->prepareOptimizedImageBand($image, $w, $h, $band['y1'], $band['y2']);
+            if ($tmpPng === null) {
+                continue;
+            }
+
+            try {
+                // Pass with PSM 4 (single column of text)
+                $text = $this->runTesseract($bin, $tmpPng, '4');
+                $imeis = ImeiExtractor::extractFromText($text);
+
+                // Fallback pass with PSM 6 if needed
+                if (empty($imeis)) {
+                    $textPsm6 = $this->runTesseract($bin, $tmpPng, '6');
+                    $imeisPsm6 = ImeiExtractor::extractFromText($textPsm6);
+                    if (!empty($imeisPsm6)) {
+                        $text = $textPsm6;
+                        $imeis = $imeisPsm6;
+                    }
+                }
+
+                if (!empty($imeis)) {
+                    $allResults[] = new BarcodeResult(
+                        text: $text,
+                        format: BarcodeFormat::OCR_TEXT,
+                        imeis: $imeis,
+                        confidence: 0.95,
+                        metadata: ['reader' => 'tesseract', 'band' => $band]
+                    );
+
+                    foreach ($imeis as $im) {
+                        if (LuhnValidator::validate($im)) {
+                            $collectedLuhnImeis[$im] = true;
+                        }
+                    }
+
+                    // If we have found 2 unique Luhn-valid IMEIs (Dual SIM), stop early
+                    if (count($collectedLuhnImeis) >= 2) {
+                        break;
+                    }
+                }
+            } finally {
+                if (file_exists($tmpPng)) {
+                    @unlink($tmpPng);
+                }
             }
         }
 
-        $tmpFile = tempnam(sys_get_temp_dir(), 'ocr_');
-        if ($tmpFile === false) {
-            if ($destroyTarget) {
-                \imagedestroy($targetImage);
+        return $allResults;
+    }
+
+    /**
+     * Preprocess an image band with 2.5x upscaling, grayscale conversion, and contrast stretching.
+     */
+    protected function prepareOptimizedImageBand(GdImage $image, int $w, int $h, float $y1Ratio, float $y2Ratio): ?string
+    {
+        $y1 = (int)($h * $y1Ratio);
+        $y2 = (int)($h * $y2Ratio);
+        $bh = max(1, $y2 - $y1);
+
+        // Upscale factor for clear OCR font strokes
+        $scale = 2.5;
+        $sw = (int)($w * $scale);
+        $sh = (int)($bh * $scale);
+
+        $crop = \imagecreatetruecolor($sw, $sh);
+        if (!$crop instanceof GdImage) {
+            return null;
+        }
+
+        \imagecopyresampled($crop, $image, 0, 0, 0, $y1, $sw, $sh, $w, $bh);
+
+        // Contrast stretch to grayscale
+        $minV = 255;
+        $maxV = 0;
+        for ($y = 0; $y < $sh; $y += 2) {
+            for ($x = 0; $x < $sw; $x += 2) {
+                $rgb = \imagecolorat($crop, $x, $y);
+                $r = ($rgb >> 16) & 0xFF;
+                $g = ($rgb >> 8) & 0xFF;
+                $b = $rgb & 0xFF;
+                $v = (int)(($r * 77 + $g * 150 + $b * 29) >> 8);
+                if ($v < $minV) $minV = $v;
+                if ($v > $maxV) $maxV = $v;
             }
-            return [];
+        }
+
+        $rng = max(1, $maxV - $minV);
+        $gray = \imagecreatetruecolor($sw, $sh);
+        if (!$gray instanceof GdImage) {
+            \imagedestroy($crop);
+            return null;
+        }
+
+        for ($y = 0; $y < $sh; $y++) {
+            for ($x = 0; $x < $sw; $x++) {
+                $rgb = \imagecolorat($crop, $x, $y);
+                $r = ($rgb >> 16) & 0xFF;
+                $g = ($rgb >> 8) & 0xFF;
+                $b = $rgb & 0xFF;
+                $v = (int)(($r * 77 + $g * 150 + $b * 29) >> 8);
+                $nv = max(0, min(255, (int)(($v - $minV) * 255 / $rng)));
+                $c = (int)\imagecolorallocate($gray, $nv, $nv, $nv);
+                \imagesetpixel($gray, $x, $y, $c);
+            }
+        }
+        \imagedestroy($crop);
+
+        $tmpFile = tempnam(sys_get_temp_dir(), 'ocr_band_');
+        if ($tmpFile === false) {
+            \imagedestroy($gray);
+            return null;
         }
 
         $tmpPng = $tmpFile . '.png';
         @unlink($tmpFile);
 
-        try {
-            \imagepng($targetImage, $tmpPng);
+        \imagepng($gray, $tmpPng);
+        \imagedestroy($gray);
 
-            $bin = $this->binaryPath ?? 'tesseract';
-
-            // Pass 1: Fast scan with PSM 6 (single uniform block) + whitelist (digits & IMEI keywords) + no dictionary lookup
-            $text = $this->runTesseract($bin, $tmpPng, '6');
-            $imeis = ImeiExtractor::extractFromText($text);
-
-            // Pass 2: Fallback scan with PSM 11 (sparse text) if no IMEIs found in Pass 1
-            if (empty($imeis)) {
-                $textPsm11 = $this->runTesseract($bin, $tmpPng, '11');
-                $imeisPsm11 = ImeiExtractor::extractFromText($textPsm11);
-                if (!empty($imeisPsm11)) {
-                    $text = $textPsm11;
-                    $imeis = $imeisPsm11;
-                }
-            }
-
-            if (empty($imeis)) {
-                return [];
-            }
-
-            return [
-                new BarcodeResult(
-                    text: $text,
-                    format: BarcodeFormat::OCR_TEXT,
-                    imeis: $imeis,
-                    confidence: 0.95,
-                    metadata: ['reader' => 'tesseract']
-                ),
-            ];
-        } catch (Throwable) {
-            return [];
-        } finally {
-            if ($destroyTarget && $targetImage instanceof GdImage) {
-                \imagedestroy($targetImage);
-            }
-            if (file_exists($tmpPng)) {
-                @unlink($tmpPng);
-            }
-        }
+        return $tmpPng;
     }
 
     /**
@@ -137,12 +204,6 @@ class TesseractOcrReader implements ReaderInterface
             'eng',
             '--psm',
             $psm,
-            '-c',
-            'tessedit_char_whitelist=0123456789IMEIimei/:-\ ',
-            '-c',
-            'load_system_dawg=0',
-            '-c',
-            'load_freq_dawg=0',
         ]);
 
         $process->setTimeout(5.0);

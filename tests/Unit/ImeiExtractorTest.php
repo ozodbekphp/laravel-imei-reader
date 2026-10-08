@@ -77,4 +77,23 @@ class ImeiExtractorTest extends TestCase
         $this->assertTrue($scan->isDualSim());
         $this->assertTrue($scan->isLuhnValid);
     }
+
+    public function test_extract_ocr_imperfect_text_with_lookalikes(): void
+    {
+        $ocrText = "SN 76812/R6T200470\nIME11 862177083545783\nIME12 8621770B3545791";
+        $imeis = ImeiExtractor::extractFromText($ocrText, strictLuhn: true);
+
+        $this->assertCount(2, $imeis);
+        $this->assertEquals('862177083545783', $imeis[0]);
+        $this->assertEquals('862177083545791', $imeis[1]);
+
+        $barcodes = [
+            new BarcodeResult($ocrText, BarcodeFormat::OCR_TEXT, $imeis),
+        ];
+
+        $scan = ImeiExtractor::buildScanResult($barcodes, strictLuhn: true);
+        $this->assertEquals('862177083545783', $scan->getImei1());
+        $this->assertEquals('862177083545791', $scan->getImei2());
+        $this->assertTrue($scan->isLuhnValid);
+    }
 }

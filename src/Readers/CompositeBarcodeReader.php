@@ -91,6 +91,14 @@ class CompositeBarcodeReader implements ReaderInterface
             }
         }
 
+        $countImeis = function () use (&$results): int {
+            $total = 0;
+            foreach ($results as $res) {
+                $total += count($res->imeis);
+            }
+            return $total;
+        };
+
         // --- TIER 1: FAST PURE-PHP 1D SCANLINES (~1-2ms, maintains vertical top-to-bottom layout) ---
         if (!empty($scanlineReaders)) {
             $scanResults = $this->decodeScanlines($image, $scanlineReaders, $seenTexts);
@@ -98,12 +106,8 @@ class CompositeBarcodeReader implements ReaderInterface
                 $results[] = $barcode;
             }
 
-            if (!empty($results)) {
-                foreach ($results as $res) {
-                    if (!empty($res->imeis)) {
-                        return $results;
-                    }
-                }
+            if ($countImeis() >= 2) {
+                return $results;
             }
         }
 
@@ -117,18 +121,14 @@ class CompositeBarcodeReader implements ReaderInterface
                 }
             }
 
-            if (!empty($results)) {
-                $hasImei = false;
-                foreach ($results as $res) {
-                    if (!empty($res->imeis)) {
-                        $hasImei = true;
-                        break;
-                    }
-                }
-                if ($hasImei) {
-                    return $results;
-                }
+            if ($countImeis() >= 2) {
+                return $results;
             }
+        }
+
+        // If we found at least 1 IMEI in barcode scans and only 1 was expected, return
+        if ($countImeis() >= 1) {
+            return $results;
         }
 
         // --- TIER 3: 2D QR CODE SCAN ---
@@ -141,7 +141,7 @@ class CompositeBarcodeReader implements ReaderInterface
                 }
             }
 
-            if (!empty($results)) {
+            if ($countImeis() >= 1) {
                 return $results;
             }
         }
@@ -161,13 +161,14 @@ class CompositeBarcodeReader implements ReaderInterface
                 }
             }
 
-            if (!empty($results)) {
+            if ($countImeis() >= 1) {
                 return $results;
             }
         }
 
         // --- TIER 5: LOCAL TESSERACT OCR FALLBACK ---
         // Reads printed "IMEI 1: 862143...", "IMEI 2: 862143..." text
+        // Only triggered when previous barcode scans did NOT find any valid IMEIs
         if ($ocrReader !== null && $ocrReader->isAvailable()) {
             $ocrResults = $ocrReader->decode($image);
             foreach ($ocrResults as $barcode) {
